@@ -32,9 +32,17 @@ type AmiCopyImpl struct {
 	output          *ec2.CopyImageOutput
 	SourceImage     *ec2types.Image
 	EnsureAvailable bool
-	KeepArtifact    bool
-	TagsOnly        bool
+	// EnsureAvailableTimeoutMinutes bounds how long to poll for the copied
+	// image to reach the "available" state before giving up. Defaults to 30
+	// (the plugin's original hardcoded behavior) when unset/zero.
+	EnsureAvailableTimeoutMinutes int
+	KeepArtifact                  bool
+	TagsOnly                      bool
 }
+
+// defaultEnsureAvailableTimeoutMinutes preserves the plugin's original
+// hardcoded 30-minute wait when no explicit timeout is configured.
+const defaultEnsureAvailableTimeoutMinutes = 30
 
 // AmiManifest holds the data about the resulting copied image
 type AmiManifest struct {
@@ -60,8 +68,12 @@ func (ac *AmiCopyImpl) Copy(ctx context.Context, ui *packer.Ui) (err error) {
 	}
 
 	if ac.EnsureAvailable {
-		(*ui).Say("Going to wait for image to be in available state")
-		for i := 1; i <= 30; i++ {
+		timeoutMinutes := ac.EnsureAvailableTimeoutMinutes
+		if timeoutMinutes <= 0 {
+			timeoutMinutes = defaultEnsureAvailableTimeoutMinutes
+		}
+		(*ui).Say(fmt.Sprintf("Going to wait for image to be in available state (timeout: %d minutes)", timeoutMinutes))
+		for i := 1; i <= timeoutMinutes; i++ {
 			image, err := LocateSingleAMI(ctx, aws.ToString(ac.output.ImageId), ac.EC2)
 			if err != nil && image == nil {
 				return err
@@ -69,10 +81,10 @@ func (ac *AmiCopyImpl) Copy(ctx context.Context, ui *packer.Ui) (err error) {
 			if image.State == ec2types.ImageStateAvailable {
 				return nil
 			}
-			(*ui).Say(fmt.Sprintf("Waiting one minute (%d/30) for AMI to become available, current state: %s for image %s on account %s", i, image.State, *image.ImageId, ac.targetAccountID))
+			(*ui).Say(fmt.Sprintf("Waiting one minute (%d/%d) for AMI to become available, current state: %s for image %s on account %s", i, timeoutMinutes, image.State, *image.ImageId, ac.targetAccountID))
 			time.Sleep(time.Duration(1) * time.Minute)
 		}
-		return fmt.Errorf("Timed out waiting for image %s to copy to account %s", *ac.output.ImageId, ac.targetAccountID)
+		return fmt.Errorf("Timed out after %d minutes waiting for image %s to copy to account %s", timeoutMinutes, *ac.output.ImageId, ac.targetAccountID)
 	}
 
 	return nil

@@ -83,6 +83,7 @@ Optional:
 - `encrypt_boot` (boolean) - create the copy with an encrypted EBS volume in the target accounts
 - `kms_key_id` (string) - the ID of the KMS key to use for boot volume encryption. (default EBS KMS key used otherwise).
 - `ensure_available` (boolean) - wait until the AMI becomes available in the copy target account(s)
+- `ensure_available_timeout_minutes` (integer) - how long, in minutes, to poll for the copied AMI to become available before failing (default: 30, matching the plugin's original hardcoded wait). Only applies when `ensure_available` is `true`.
 - `keep_artifact` (boolean) - remove the original generated AMI after copy (default: true)
 - `manifest_output` (string) - the name of the file we output AMI IDs to, in JSON format (default: no manifest file is written)
 - `tags_only` (boolean) - if set to `true`, then the AMI won't be copied, but the tags will be duplicated on the shared AMI in the destination account.

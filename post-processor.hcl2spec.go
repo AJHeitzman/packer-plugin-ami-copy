@@ -61,6 +61,7 @@ type FlatConfig struct {
 	RoleName                *string                           `mapstructure:"role_name" cty:"role_name" hcl:"role_name"`
 	CopyConcurrency         *int                              `mapstructure:"copy_concurrency" cty:"copy_concurrency" hcl:"copy_concurrency"`
 	EnsureAvailable         *bool                             `mapstructure:"ensure_available" cty:"ensure_available" hcl:"ensure_available"`
+	EnsureAvailableTimeoutMinutes *int                        `mapstructure:"ensure_available_timeout_minutes" cty:"ensure_available_timeout_minutes" hcl:"ensure_available_timeout_minutes"`
 	KeepArtifact            *string                           `mapstructure:"keep_artifact" cty:"keep_artifact" hcl:"keep_artifact"`
 	ManifestOutput          *string                           `mapstructure:"manifest_output" cty:"manifest_output" hcl:"manifest_output"`
 	TagsOnly                *bool                             `mapstructure:"tags_only" cty:"tags_only" hcl:"tags_only"`
@@ -127,6 +128,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"role_name":                     &hcldec.AttrSpec{Name: "role_name", Type: cty.String, Required: false},
 		"copy_concurrency":              &hcldec.AttrSpec{Name: "copy_concurrency", Type: cty.Number, Required: false},
 		"ensure_available":              &hcldec.AttrSpec{Name: "ensure_available", Type: cty.Bool, Required: false},
+		"ensure_available_timeout_minutes": &hcldec.AttrSpec{Name: "ensure_available_timeout_minutes", Type: cty.Number, Required: false},
 		"keep_artifact":                 &hcldec.AttrSpec{Name: "keep_artifact", Type: cty.String, Required: false},
 		"manifest_output":               &hcldec.AttrSpec{Name: "manifest_output", Type: cty.String, Required: false},
 		"tags_only":                     &hcldec.AttrSpec{Name: "tags_only", Type: cty.Bool, Required: false},

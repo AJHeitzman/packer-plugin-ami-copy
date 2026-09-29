@@ -52,9 +52,13 @@ type Config struct {
 	RoleName        string `mapstructure:"role_name"`
 	CopyConcurrency int    `mapstructure:"copy_concurrency"`
 	EnsureAvailable bool   `mapstructure:"ensure_available"`
-	KeepArtifact    string `mapstructure:"keep_artifact"`
-	ManifestOutput  string `mapstructure:"manifest_output"`
-	TagsOnly        bool   `mapstructure:"tags_only"`
+	// EnsureAvailableTimeoutMinutes bounds how long `ensure_available` polls
+	// for the copied AMI to reach "available" before failing. Defaults to
+	// 30 minutes (the plugin's original hardcoded behavior) when unset.
+	EnsureAvailableTimeoutMinutes int    `mapstructure:"ensure_available_timeout_minutes"`
+	KeepArtifact                  string `mapstructure:"keep_artifact"`
+	ManifestOutput                string `mapstructure:"manifest_output"`
+	TagsOnly                      bool   `mapstructure:"tags_only"`
 
 	ctx interpolate.Context
 }
@@ -89,6 +93,10 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 
 	if len(p.config.KeepArtifact) == 0 {
 		p.config.KeepArtifact = "true"
+	}
+
+	if p.config.EnsureAvailableTimeoutMinutes < 0 {
+		return errors.New("ensure_available_timeout_minutes must not be negative")
 	}
 
 	return nil
@@ -177,10 +185,11 @@ func (p *PostProcessor) PostProcess(
 			}
 
 			amiCopy := &amicopy.AmiCopyImpl{
-				EC2:             conn,
-				SourceImage:     source,
-				EnsureAvailable: p.config.EnsureAvailable,
-				TagsOnly:        p.config.TagsOnly,
+				EC2:                           conn,
+				SourceImage:                   source,
+				EnsureAvailable:               p.config.EnsureAvailable,
+				EnsureAvailableTimeoutMinutes: p.config.EnsureAvailableTimeoutMinutes,
+				TagsOnly:                      p.config.TagsOnly,
 			}
 			amiCopy.SetTargetAccountID(user)
 			amiCopy.SetInput(&ec2.CopyImageInput{
